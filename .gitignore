@@ -11,3 +11,18 @@ Thumbs.db
 *.csv
 *.xlsx
 !data/README.md
+
+# 敏感信息（密钥、凭据、隐私——严禁入库）
+.env
+.env.*
+*.key
+*.pem
+*credential*
+*secret*
+.git-credentials
+config.json
+
+# WorkBuddy 运行时数据（个人记忆、会话记录不入库；skills 保留）
+.workbuddy/memory/
+.workbuddy/workspace/
+.workbuddy/*.json

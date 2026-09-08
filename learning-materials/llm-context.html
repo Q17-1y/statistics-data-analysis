@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大模型的上下文 · 源头学习</title>
+<style>
+  :root{
+    --ink:#1f1d1a;--sub:#8a8578;--accent:#c15f3c;--line:#e5e2da;
+    --bg:#faf9f6;--card:#ffffff;--ok:#3d7a4f;--no:#a63d2f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.7;font-size:16px}
+  main{max-width:720px;margin:0 auto;padding:64px 24px 96px}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
+  .tag{color:var(--sub);font-size:14px;margin-top:8px}
+  h2{font-size:15px;font-weight:600;color:var(--accent);
+     text-transform:uppercase;letter-spacing:.12em;margin:72px 0 20px;
+     display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  p.lead{font-size:20px;margin-bottom:12px}
+  .muted{color:var(--sub);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-top:16px}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e8c4b5}
+  a:hover{border-bottom-color:var(--accent)}
+  pre{background:#f1efe9;border-radius:10px;padding:18px;overflow:auto;
+      font-family:"JetBrains Mono",Consolas,monospace;font-size:13.5px;line-height:1.6}
+  .draft{border:1px dashed var(--accent);border-radius:12px;padding:18px 24px;margin-top:16px;background:#fff}
+  .draft .label{font-size:12px;color:var(--accent);letter-spacing:.1em;font-weight:600}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--sub);font-weight:600}
+  .timeline{border-left:2px solid var(--line);margin-left:6px}
+  .timeline .t{padding:2px 0 2px 24px;position:relative;margin:14px 0}
+  .timeline .t::before{content:"";position:absolute;left:-7px;top:.65em;width:12px;height:12px;border-radius:50%;
+    background:var(--bg);border:2px solid var(--accent)}
+  .timeline .date{font-size:13px;color:var(--accent);font-weight:600}
+  .quiz{border:1px solid var(--line);border-radius:12px;background:var(--card);
+        padding:22px;margin:16px 0}
+  .quiz .stars{color:var(--accent);font-size:13px;letter-spacing:2px}
+  .quiz .q{font-weight:600;margin:6px 0 14px}
+  .opt{display:block;width:100%;text-align:left;padding:10px 14px;margin:6px 0;
+       border:1px solid var(--line);border-radius:8px;background:#fff;
+       font-size:15px;cursor:pointer;transition:all .15s;font-family:inherit;color:var(--ink)}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{border-color:var(--ok);background:#f0f6f1}
+  .opt.wrong{border-color:var(--no);background:#faf1ef}
+  .opt:disabled{cursor:default;opacity:.85}
+  .explain{display:none;font-size:14px;color:var(--sub);margin-top:10px;
+           padding-top:10px;border-top:1px dashed var(--line)}
+  .explain.show{display:block}
+  .score{font-size:18px;font-weight:600;text-align:center;padding:24px;
+         border:1px solid var(--line);border-radius:12px;margin-top:24px;background:var(--card)}
+  footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--line)}
+  svg{display:block;max-width:100%}
+</style>
+</head>
+<body>
+<main>
+
+<h1>大模型的上下文</h1>
+<p class="tag">Context Window：模型一次"看得见"的全部内容 &nbsp;｜&nbsp; 全部内容可点击出处验证</p>
+
+<!-- ============ 01 是什么 ============ -->
+<h2>01 · 它是什么</h2>
+<p class="lead">上下文窗口是<b>模型单次调用能处理的最大 token 范围</b>——所有内容都在这一个"窗口"里。</p>
+
+<div class="card">
+<svg viewBox="0 0 640 170" role="img" aria-label="上下文窗口的组成">
+  <text x="30" y="34" font-size="13" fill="#8a8578" font-family="sans-serif">← 上下文窗口（有限容量）→</text>
+  <rect x="30" y="50" width="120" height="56" rx="8" fill="#c15f3c"/>
+  <text x="90" y="83" text-anchor="middle" font-size="13.5" fill="#fff" font-family="sans-serif">系统提示词</text>
+  <rect x="155" y="50" width="170" height="56" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="240" y="83" text-anchor="middle" font-size="13.5" fill="#1f1d1a" font-family="sans-serif">对话历史</text>
+  <rect x="330" y="50" width="140" height="56" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="400" y="83" text-anchor="middle" font-size="13.5" fill="#1f1d1a" font-family="sans-serif">工具结果 / 文档</text>
+  <rect x="475" y="50" width="135" height="56" rx="8" fill="#fff" stroke="#c15f3c" stroke-dasharray="4 3"/>
+  <text x="542" y="83" text-anchor="middle" font-size="13.5" fill="#c15f3c" font-family="sans-serif">新消息</text>
+  <line x1="30" y1="130" x2="610" y2="130" stroke="#e5e2da" stroke-width="1.5"/>
+  <text x="30" y="152" font-size="12.5" fill="#8a8578" font-family="sans-serif">装不下时：早期内容被截断或挤出——模型"忘了"最初的部分</text>
+</svg>
+<p class="muted" style="margin-top:8px">关键事实：窗口内一切内容（指令、历史、资料）共同占用容量，且每一轮都要重新送入 —— <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng：短期记忆即上下文学习 ↗</a></p>
+</div>
+
+<div class="draft">
+  <div class="label">个人解释 · 初稿（请用自己的话改写后使用）</div>
+  <p style="margin-top:8px;font-size:15px">上下文像模型的一块"白板"：每次回答前，它只能看白板上写了什么——系统提示、之前的对话、贴进去的资料。白板大小固定，写满了就得擦掉最早的；而且哪怕没满，它也不是逐字精读，中间部分最容易"看走眼"。</p>
+</div>
+
+<!-- ============ 02 溯源 ============ -->
+<h2>02 · 它从哪来</h2>
+<div class="timeline">
+  <div class="t"><span class="date">2017-06</span><br>Transformer 提出：完全基于注意力机制，没有循环结构——"一次看多少"由注意力决定 —— <a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need ↗</a></div>
+  <div class="t"><span class="date">2023-06</span><br>LLM Agent 框架把上下文定位为"短期记忆"，长期记忆靠外部向量库 —— <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng 博客 ↗</a></div>
+  <div class="t"><span class="date">2023-07</span><br>"Lost in the Middle"：实证发现模型对长上下文中间位置的信息利用显著变差 —— <a href="https://arxiv.org/abs/2307.03172" target="_blank">论文 ↗</a></div>
+</div>
+
+<!-- ============ 03 核心机制 ============ -->
+<h2>03 · 核心机制：位置决定利用率</h2>
+<p class="muted">"Lost in the Middle" 的核心发现：相关信息在开头或结尾时表现最好，落在中间时显著下降。</p>
+
+<div class="card">
+<svg viewBox="0 0 640 190" role="img" aria-label="U 形利用率曲线">
+  <line x1="60" y1="150" x2="600" y2="150" stroke="#e5e2da" stroke-width="1.5"/>
+  <line x1="60" y1="150" x2="60" y2="30" stroke="#e5e2da" stroke-width="1.5"/>
+  <path d="M 60 55 C 200 135, 440 135, 580 55" fill="none" stroke="#c15f3c" stroke-width="2.5"/>
+  <text x="88" y="45" font-size="13" fill="#c15f3c" font-family="sans-serif">开头：强</text>
+  <text x="285" y="120" font-size="13" fill="#c15f3c" font-family="sans-serif">中间：弱（易丢信息）</text>
+  <text x="530" y="45" font-size="13" fill="#c15f3c" font-family="sans-serif">结尾：强</text>
+  <text x="60" y="172" font-size="12.5" fill="#8a8578" font-family="sans-serif">信息在上下文中的位置 →</text>
+  <text x="60" y="22" font-size="12.5" fill="#8a8578" font-family="sans-serif">模型利用率 ↑</text>
+</svg>
+<p class="muted" style="margin-top:8px">结论来自多文档问答与键值检索两组实验，长上下文模型也不例外 —— <a href="https://arxiv.org/abs/2307.03172" target="_blank">论文 ↗</a></p>
+</div>
+
+<!-- ============ 04 最小示例 ============ -->
+<h2>04 · 最小示例：一次调用的拼装</h2>
+<pre>POST /messages
+{
+  "system": "你是统计学学习助手……",        ← 常驻，优先级最高
+  "messages": [
+    {"role": "user", "content": "什么是假设检验"},   ← 历史轮次
+    {"role": "assistant", "content": "假设检验是……"}, ← 全部重发
+    {"role": "user", "content": "给我举个例子"}        ← 新消息
+  ]
+}
+# 三部分共同占用上下文窗口；历史越长，成本越高，窗口越满</pre>
+<p class="muted" style="margin-top:10px">token 计量与窗口管理细节见各模型官方文档（此示例为通用 Messages API 结构）</p>
+
+<!-- ============ 05 应用场景与边界 ============ -->
+<h2>05 · 应用场景与边界</h2>
+
+<div class="card">
+  <p class="muted">具体应用场景</p>
+  <p style="margin-top:6px">长文档问答：把与问题最相关的段落放在<b>开头或结尾</b>，而不是塞在中间——同样的内容，换位置就能明显提升回答质量（这是对 Lost in the Middle 结论的直接应用）。</p>
+</div>
+
+<div class="card">
+  <p class="muted">容易混淆 / 使用边界</p>
+  <table>
+    <tr><th>易混淆点</th><th>澄清</th></tr>
+    <tr><td>上下文 ≠ 记忆</td><td>会话结束后即消失；跨会话的"记忆"要靠外部存储 + 检索（Agent 的长期记忆）</td></tr>
+    <tr><td>窗口大 ≠ 用得好</td><td>窗口再大，中间信息利用率照样下降；"塞得进"不等于"用得上"</td></tr>
+    <tr><td>上下文不是免费的</td><td>输入 token 按量计费，历史每轮重发，长对话成本线性增长</td></tr>
+  </table>
+</div>
+
+<!-- ============ 06 测试 ============ -->
+<h2>06 · 测试（难度递增）</h2>
+
+<div class="quiz" data-answer="1">
+  <span class="stars">★☆☆☆☆</span>
+  <div class="q">1. "上下文窗口"指的是什么？</div>
+  <button class="opt">模型硬盘的存储容量</button>
+  <button class="opt">模型单次调用能处理的最大 token 范围</button>
+  <button class="opt">模型训练时用到的数据总量</button>
+  <button class="opt">浏览器打开网页的数量</button>
+  <div class="explain">上下文窗口是单次推理可见内容的上限，与训练数据规模无关。<a href="https://arxiv.org/abs/1706.03762" target="_blank">背景：Transformer 架构 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <span class="stars">★★☆☆☆</span>
+  <div class="q">2. 一次调用中，上下文窗口里通常包含哪些内容？</div>
+  <button class="opt">只有用户最新的一句话</button>
+  <button class="opt">只有系统提示词</button>
+  <button class="opt">系统提示词 + 对话历史 + 工具结果/文档 + 新消息</button>
+  <button class="opt">模型的所有训练数据</button>
+  <div class="explain">窗口内是"本次调用可见的一切"，各部分共同占用容量。<a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <span class="stars">★★★☆☆</span>
+  <div class="q">3. "Lost in the Middle" 的核心发现是什么？</div>
+  <button class="opt">相关信息在上下文中间时，模型利用率显著低于开头和结尾</button>
+  <button class="opt">模型完全无法处理长文本</button>
+  <button class="opt">只要窗口够大，位置就不影响效果</button>
+  <button class="opt">模型总是只记住最后一句话</button>
+  <div class="explain">论文实测：表现呈 U 形——开头、结尾强，中间弱；长上下文模型也不例外。<a href="https://arxiv.org/abs/2307.03172" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <span class="stars">★★★★☆</span>
+  <div class="q">4. 在 LLM Agent 框架中，上下文窗口和"长期记忆"分别对应什么？</div>
+  <button class="opt">两者是同一个东西的两种叫法</button>
+  <button class="opt">短期记忆 = 上下文学习（受窗口限制）；长期记忆 = 外部向量存储 + 快速检索</button>
+  <button class="opt">短期记忆 = 硬盘；长期记忆 = 内存</button>
+  <button class="opt">上下文就是长期记忆，只是名字不同</button>
+  <div class="explain">Lilian Weng 明确映射：In-context learning = 短期记忆；外部向量库 = 长期记忆。<a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <span class="stars">★★★★★</span>
+  <div class="q">5. 为什么说"窗口大 ≠ 效果好"？最合理的解释组合是？</div>
+  <button class="opt">窗口越大，模型越聪明</button>
+  <button class="opt">窗口大小只影响速度，不影响质量</button>
+  <button class="opt">窗口大了就不再需要检索</button>
+  <button class="opt">位置衰减使中间信息利用率下降，且每轮重发全部内容导致成本随长度增长——所以需要"上下文工程"精选内容</button>
+  <div class="explain">Lost in the Middle 证明利用率与位置相关；成本随 token 线性增长。两个事实叠加，"能装下"≠"用得上"≠"装得起"。<a href="https://arxiv.org/abs/2307.03172" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="score" id="score">答完 5 题后显示得分</div>
+
+<footer>
+  <p class="muted">出处速查：
+    <a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need</a> ·
+    <a href="https://arxiv.org/abs/2307.03172" target="_blank">Lost in the Middle</a> ·
+    <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng 博客</a>
+  </p>
+</footer>
+
+</main>
+
+<script>
+let answered = 0, correct = 0;
+document.querySelectorAll('.quiz').forEach(q => {
+  const ans = +q.dataset.answer;
+  const opts = q.querySelectorAll('.opt');
+  opts.forEach((btn, i) => btn.addEventListener('click', () => {
+    if (q.dataset.done) return;
+    q.dataset.done = "1";
+    answered++;
+    opts.forEach((b, j) => {
+      b.disabled = true;
+      if (j === ans) b.classList.add('correct');
+    });
+    if (i === ans) correct++;
+    else btn.classList.add('wrong');
+    q.querySelector('.explain').classList.add('show');
+    if (answered === document.querySelectorAll('.quiz').length) {
+      const total = document.querySelectorAll('.quiz').length;
+      const s = document.getElementById('score');
+      s.textContent = `得分：${correct} / ${total}` +
+        (correct === total ? ' · 满分！概念已吃透' :
+         correct >= total * 0.6 ? ' · 不错，错题点回出处验证一下' :
+         ' · 建议重读第 01、03 节');
+    }
+  }));
+});
+</script>
+</body>
+</html>

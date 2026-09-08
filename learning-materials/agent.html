@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent（智能体） · 源头学习</title>
+<style>
+  :root{
+    --ink:#1f1d1a;--sub:#8a8578;--accent:#c15f3c;--line:#e5e2da;
+    --bg:#faf9f6;--card:#ffffff;--ok:#3d7a4f;--no:#a63d2f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.7;font-size:16px}
+  main{max-width:720px;margin:0 auto;padding:64px 24px 96px}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
+  .tag{color:var(--sub);font-size:14px;margin-top:8px}
+  h2{font-size:15px;font-weight:600;color:var(--accent);
+     text-transform:uppercase;letter-spacing:.12em;margin:72px 0 20px;
+     display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  p.lead{font-size:20px;margin-bottom:12px}
+  .muted{color:var(--sub);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-top:16px}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e8c4b5}
+  a:hover{border-bottom-color:var(--accent)}
+  ul{list-style:none}
+  ul li{padding-left:20px;position:relative;margin:6px 0}
+  ul li::before{content:"";position:absolute;left:2px;top:.75em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  pre{background:#f1efe9;border-radius:10px;padding:18px;overflow:auto;
+      font-family:"JetBrains Mono",Consolas,monospace;font-size:13.5px;line-height:1.6}
+  .draft{border:1px dashed var(--accent);border-radius:12px;padding:18px 24px;margin-top:16px;background:#fff}
+  .draft .label{font-size:12px;color:var(--accent);letter-spacing:.1em;font-weight:600}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--sub);font-weight:600}
+  .timeline{border-left:2px solid var(--line);margin-left:6px}
+  .timeline .t{padding:2px 0 2px 24px;position:relative;margin:14px 0}
+  .timeline .t::before{content:"";position:absolute;left:-7px;top:.65em;width:12px;height:12px;border-radius:50%;
+    background:var(--bg);border:2px solid var(--accent)}
+  .timeline .date{font-size:13px;color:var(--accent);font-weight:600}
+  .quiz{border:1px solid var(--line);border-radius:12px;background:var(--card);
+        padding:22px;margin:16px 0}
+  .quiz .stars{color:var(--accent);font-size:13px;letter-spacing:2px}
+  .quiz .q{font-weight:600;margin:6px 0 14px}
+  .opt{display:block;width:100%;text-align:left;padding:10px 14px;margin:6px 0;
+       border:1px solid var(--line);border-radius:8px;background:#fff;
+       font-size:15px;cursor:pointer;transition:all .15s;font-family:inherit;color:var(--ink)}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{border-color:var(--ok);background:#f0f6f1}
+  .opt.wrong{border-color:var(--no);background:#faf1ef}
+  .opt:disabled{cursor:default;opacity:.85}
+  .explain{display:none;font-size:14px;color:var(--sub);margin-top:10px;
+           padding-top:10px;border-top:1px dashed var(--line)}
+  .explain.show{display:block}
+  .score{font-size:18px;font-weight:600;text-align:center;padding:24px;
+         border:1px solid var(--line);border-radius:12px;margin-top:24px;background:var(--card)}
+  footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--line)}
+  svg{display:block;max-width:100%}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Agent（智能体）</h1>
+<p class="tag">一句话：在循环中感知环境、使用工具、自主决策的系统 &nbsp;｜&nbsp; 全部内容可点击出处验证</p>
+
+<!-- ============ 01 是什么 ============ -->
+<h2>01 · 它是什么</h2>
+<p class="lead">Agent 是<b>能自主决定"下一步做什么"的系统</b>——不是一次问答，而是一个循环。</p>
+
+<div class="card">
+<svg viewBox="0 0 640 210" role="img" aria-label="Agent 三大组件">
+  <rect x="30" y="60" width="150" height="90" rx="10" fill="#c15f3c"/>
+  <text x="105" y="98" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold" font-family="sans-serif">LLM</text>
+  <text x="105" y="122" text-anchor="middle" font-size="12" fill="#fff" font-family="sans-serif">大脑（决策）</text>
+  <line x1="180" y1="80" x2="240" y2="50" stroke="#e5e2da" stroke-width="1.5"/>
+  <line x1="180" y1="105" x2="240" y2="105" stroke="#e5e2da" stroke-width="1.5"/>
+  <line x1="180" y1="130" x2="240" y2="160" stroke="#e5e2da" stroke-width="1.5"/>
+  <rect x="245" y="26" width="160" height="48" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="325" y="56" text-anchor="middle" font-size="14" fill="#1f1d1a" font-family="sans-serif">规划 Planning</text>
+  <rect x="245" y="82" width="160" height="48" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="325" y="112" text-anchor="middle" font-size="14" fill="#1f1d1a" font-family="sans-serif">记忆 Memory</text>
+  <rect x="245" y="138" width="160" height="48" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="325" y="168" text-anchor="middle" font-size="14" fill="#1f1d1a" font-family="sans-serif">工具 Tool use</text>
+  <line x1="425" y1="105" x2="480" y2="105" stroke="#c15f3c" stroke-width="1.5"/>
+  <polygon points="480,105 472,100 472,110" fill="#c15f3c"/>
+  <text x="500" y="98" font-size="13.5" fill="#8a8578" font-family="sans-serif">面向</text>
+  <text x="500" y="118" font-size="13.5" fill="#8a8578" font-family="sans-serif">真实任务</text>
+</svg>
+<p class="muted" style="margin-top:8px">经典框架：LLM 当大脑，规划、记忆、工具三件套补齐能力 —— <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng 原文 ↗</a></p>
+</div>
+
+<div class="draft">
+  <div class="label">个人解释 · 初稿（请用自己的话改写后使用）</div>
+  <p style="margin-top:8px;font-size:15px">我觉得 Agent 就像被给了工具箱和目标的实习生：不逐步听指令，而是自己拆解任务、动手尝试、看结果再调整。它和普通聊天的区别在于——聊天是"问一句答一句"，Agent 是"给个目标，它自己走完全程"。</p>
+</div>
+
+<!-- ============ 02 溯源 ============ -->
+<h2>02 · 它从哪来</h2>
+<div class="timeline">
+  <div class="t"><span class="date">1995</span><br>Russell &amp; Norvig《AIMA》确立"理性代理"经典定义：通过传感器感知环境、通过执行器作用于环境 —— <a href="https://aima.cs.berkeley.edu/" target="_blank">AIMA 官网 ↗</a></div>
+  <div class="t"><span class="date">1995</span><br>Wooldridge &amp; Jennings 系统化"智能代理"学术定义 —— <a href="https://doi.org/10.1017/S0269888900008122" target="_blank">论文 DOI ↗</a></div>
+  <div class="t"><span class="date">2023-06</span><br>LLM Agent 框架定型：LLM 当大脑 + 规划/记忆/工具 —— <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng 博客 ↗</a></div>
+  <div class="t"><span class="date">2024-12</span><br>Anthropic 给出最小定义并区分 Workflow 与 Agent —— <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">官方原文 ↗</a></div>
+</div>
+
+<!-- ============ 03 核心机制 ============ -->
+<h2>03 · 核心机制：环境反馈循环</h2>
+<p class="muted">Anthropic 的最小定义：Agent 就是"在循环中基于环境反馈使用工具的 LLM"。</p>
+
+<div class="card">
+<svg viewBox="0 0 640 190" role="img" aria-label="Agent 循环">
+  <rect x="40" y="60" width="130" height="56" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="105" y="93" text-anchor="middle" font-size="14" fill="#1f1d1a" font-family="sans-serif">接收任务</text>
+  <line x1="170" y1="88" x2="225" y2="88" stroke="#c15f3c" stroke-width="1.5"/>
+  <polygon points="225,88 217,83 217,93" fill="#c15f3c"/>
+  <rect x="230" y="60" width="130" height="56" rx="8" fill="#c15f3c"/>
+  <text x="295" y="93" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold" font-family="sans-serif">LLM 决策</text>
+  <line x1="360" y1="88" x2="415" y2="88" stroke="#c15f3c" stroke-width="1.5"/>
+  <polygon points="415,88 407,83 407,93" fill="#c15f3c"/>
+  <rect x="420" y="60" width="130" height="56" rx="8" fill="#fff" stroke="#e5e2da"/>
+  <text x="485" y="93" text-anchor="middle" font-size="14" fill="#1f1d1a" font-family="sans-serif">调用工具</text>
+  <path d="M 485 116 L 485 155 L 295 155 L 295 121" fill="none" stroke="#c15f3c" stroke-width="1.5"/>
+  <polygon points="295,121 290,129 300,129" fill="#c15f3c"/>
+  <text x="390" y="176" text-anchor="middle" font-size="13" fill="#8a8578" font-family="sans-serif">环境反馈（工具结果 = 事实依据）→ 再决策，直至完成</text>
+</svg>
+<p class="muted" style="margin-top:8px">要点：每步从环境拿"ground truth"评估进展；需设停止条件（如最大迭代次数）—— <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">原文 ↗</a></p>
+</div>
+
+<!-- ============ 04 最小示例 ============ -->
+<h2>04 · 最小示例：ReAct 循环</h2>
+<pre>Thought: 我需要先查一下 X 的最新数据     # 思考
+Action: search("X 最新数据")             # 行动：调用工具
+Observation: 查询结果……                  # 环境反馈
+Thought: 结果显示……接下来……             # 再思考，循环</pre>
+<p class="muted" style="margin-top:10px">实验结论：带 Thought 步骤的 ReAct 优于纯行动基线 —— <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">原文综述 ↗</a></p>
+
+<!-- ============ 05 应用场景与边界 ============ -->
+<h2>05 · 应用场景与边界</h2>
+
+<div class="card">
+  <p class="muted">具体应用场景</p>
+  <p style="margin-top:6px">让编码 Agent 修复一个 bug：它自己读代码、跑测试、看报错、改代码、再跑测试——循环到测试通过为止。人只给目标，不指挥每一步。（官方参考实现：SWE-bench 编码 Agent —— <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">原文 ↗</a>）</p>
+</div>
+
+<div class="card">
+  <p class="muted">容易混淆 / 使用边界</p>
+  <table>
+    <tr><th>易混淆点</th><th>澄清</th></tr>
+    <tr><td>Agent ≠ 聊天机器人</td><td>聊天是一问一答；Agent 自主决定流程，可能有几十步</td></tr>
+    <tr><td>Agent ≠ Workflow</td><td>Workflow 的路径是代码写死的；Agent 的路径由 LLM 现场决定</td></tr>
+    <tr><td>不是越自主越好</td><td>Agent 用延迟和成本换表现；错误会累积；必须设停止条件并在沙盒测试</td></tr>
+  </table>
+</div>
+
+<!-- ============ 06 测试 ============ -->
+<h2>06 · 测试（难度递增）</h2>
+
+<div class="quiz" data-answer="2">
+  <span class="stars">★☆☆☆☆</span>
+  <div class="q">1. 按 Anthropic 的最小定义，Agent 的本质是什么？</div>
+  <button class="opt">一个更大的语言模型</button>
+  <button class="opt">一个预编程的自动化脚本</button>
+  <button class="opt">在循环中基于环境反馈使用工具的 LLM</button>
+  <button class="opt">一个多模型投票系统</button>
+  <div class="explain">原文："They are typically just LLMs using tools based on environmental feedback in a loop."<a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <span class="stars">★★☆☆☆</span>
+  <div class="q">2. LLM Agent 经典框架中，除 LLM 大脑外的三大组件是？</div>
+  <button class="opt">提示词、微调、检索</button>
+  <button class="opt">规划、记忆、工具使用</button>
+  <button class="opt">训练、评估、部署</button>
+  <button class="opt">输入、输出、反馈</button>
+  <div class="explain">Lilian Weng 的框架：Planning + Memory + Tool Use 补充 LLM 大脑。<a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <span class="stars">★★★☆☆</span>
+  <div class="q">3. Workflow 和 Agent 的本质区别是什么？</div>
+  <button class="opt">Workflow 的流程由预定义代码路径编排；Agent 由 LLM 动态自主决定流程</button>
+  <button class="opt">Workflow 用小模型；Agent 用大模型</button>
+  <button class="opt">Workflow 不能调用工具；Agent 可以</button>
+  <button class="opt">Workflow 是开源的；Agent 是闭源的</button>
+  <div class="explain">Anthropic 明确定义两者均为 agentic systems，差别在于流程控制权在代码还是在模型。<a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <span class="stars">★★★★☆</span>
+  <div class="q">4. ReAct 中"Thought: …"步骤的价值是什么？</div>
+  <button class="opt">增加输出字数，让回答显得详细</button>
+  <button class="opt">替代工具调用，省去外部请求</button>
+  <button class="opt">仅用于向用户展示推理过程</button>
+  <button class="opt">把推理与行动结合，扩展动作空间——实验证明优于去掉思考步骤的纯行动基线</button>
+  <div class="explain">原文："ReAct works better than the Act-only baseline where the Thought step is removed."<a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <span class="stars">★★★★★</span>
+  <div class="q">5. Anthropic 建议何时才应该引入 Agent（而不是更简单的方案）？</div>
+  <button class="opt">只要任务复杂就应优先用 Agent</button>
+  <button class="opt">仅在更简单的方案被证明不够、且灵活性的收益能抵消延迟与成本时</button>
+  <button class="opt">当团队想展示技术实力时</button>
+  <button class="opt">当单次 LLM 调用无法通过提示词优化解决时，也必须直接上 Agent</button>
+  <div class="explain">核心原则："add multi-step agentic systems only when simpler solutions fall short"，复杂性只在可证明改善结果时增加。<a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="score" id="score">答完 5 题后显示得分</div>
+
+<footer>
+  <p class="muted">出处速查：
+    <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank">Lilian Weng 综述</a> ·
+    <a href="https://www.anthropic.com/research/building-effective-agents" target="_blank">Anthropic 官方</a> ·
+    <a href="https://aima.cs.berkeley.edu/" target="_blank">AIMA</a> ·
+    <a href="https://doi.org/10.1017/S0269888900008122" target="_blank">Wooldridge &amp; Jennings</a>
+  </p>
+</footer>
+
+</main>
+
+<script>
+let answered = 0, correct = 0;
+document.querySelectorAll('.quiz').forEach(q => {
+  const ans = +q.dataset.answer;
+  const opts = q.querySelectorAll('.opt');
+  opts.forEach((btn, i) => btn.addEventListener('click', () => {
+    if (q.dataset.done) return;
+    q.dataset.done = "1";
+    answered++;
+    opts.forEach((b, j) => {
+      b.disabled = true;
+      if (j === ans) b.classList.add('correct');
+    });
+    if (i === ans) correct++;
+    else btn.classList.add('wrong');
+    q.querySelector('.explain').classList.add('show');
+    if (answered === document.querySelectorAll('.quiz').length) {
+      const total = document.querySelectorAll('.quiz').length;
+      const s = document.getElementById('score');
+      s.textContent = `得分：${correct} / ${total}` +
+        (correct === total ? ' · 满分！概念已吃透' :
+         correct >= total * 0.6 ? ' · 不错，错题点回出处验证一下' :
+         ' · 建议重读第 01、03 节');
+    }
+  }));
+});
+</script>
+</body>
+</html>

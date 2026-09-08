@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{CONCEPT_NAME}} · 源头学习</title>
+<style>
+  /* ===== 设计系统：克制配色，只用一个强调色 =====
+     --accent 可按主题微调，但保持全页唯一强调色；其余为中性色 */
+  :root{
+    --ink:#1f1d1a;      /* 正文 */
+    --sub:#8a8578;      /* 辅助说明 */
+    --accent:#c15f3c;   /* 唯一强调色 */
+    --line:#e5e2da;     /* 分隔线 */
+    --bg:#faf9f6;       /* 页面底色 */
+    --card:#ffffff;     /* 卡片 */
+    --ok:#3d7a4f;       /* 答对（仅测试区用） */
+    --no:#a63d2f;       /* 答错（仅测试区用） */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    line-height:1.7;font-size:16px}
+  main{max-width:720px;margin:0 auto;padding:64px 24px 96px}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
+  .tag{color:var(--sub);font-size:14px;margin-top:8px}
+  h2{font-size:15px;font-weight:600;color:var(--accent);
+     text-transform:uppercase;letter-spacing:.12em;margin:72px 0 20px;
+     display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line)}
+  p.lead{font-size:20px;margin-bottom:12px}
+  .muted{color:var(--sub);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-top:16px}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e8c4b5}
+  a:hover{border-bottom-color:var(--accent)}
+  ul{list-style:none}
+  ul li{padding-left:20px;position:relative;margin:6px 0}
+  ul li::before{content:"";position:absolute;left:2px;top:.75em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  code{font-family:"JetBrains Mono",Consolas,monospace;font-size:14px;
+       background:#f1efe9;padding:2px 6px;border-radius:4px}
+  pre{background:#f1efe9;border-radius:10px;padding:18px;overflow:auto;
+      font-family:"JetBrains Mono",Consolas,monospace;font-size:13.5px;line-height:1.6}
+  .timeline{border-left:2px solid var(--line);margin-left:6px}
+  .timeline .t{padding:2px 0 2px 24px;position:relative;margin:14px 0}
+  .timeline .t::before{content:"";position:absolute;left:-7px;top:.65em;width:12px;height:12px;border-radius:50%;
+    background:var(--bg);border:2px solid var(--accent)}
+  .timeline .date{font-size:13px;color:var(--accent);font-weight:600}
+  .quiz{border:1px solid var(--line);border-radius:12px;background:var(--card);
+        padding:22px;margin:16px 0}
+  .quiz .stars{color:var(--accent);font-size:13px;letter-spacing:2px}
+  .quiz .q{font-weight:600;margin:6px 0 14px}
+  .opt{display:block;width:100%;text-align:left;padding:10px 14px;margin:6px 0;
+       border:1px solid var(--line);border-radius:8px;background:#fff;
+       font-size:15px;cursor:pointer;transition:all .15s;font-family:inherit;color:var(--ink)}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{border-color:var(--ok);background:#f0f6f1}
+  .opt.wrong{border-color:var(--no);background:#faf1ef}
+  .opt:disabled{cursor:default;opacity:.85}
+  .explain{display:none;font-size:14px;color:var(--sub);margin-top:10px;
+           padding-top:10px;border-top:1px dashed var(--line)}
+  .explain.show{display:block}
+  .score{font-size:18px;font-weight:600;text-align:center;padding:24px;
+         border:1px solid var(--line);border-radius:12px;margin-top:24px;background:var(--card)}
+  footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--line)}
+  svg{display:block;max-width:100%}
+</style>
+</head>
+<body>
+<main>
+
+<h1>{{CONCEPT_NAME}}</h1>
+<p class="tag">{{ONE_LINE_SUMMARY}} &nbsp;｜&nbsp; 全部内容可点击出处验证</p>
+
+<!-- ============ 01 是什么：一句话 + 一张结构图 ============ -->
+<h2>01 · 它是什么</h2>
+<p class="lead">{{ONE_SENTENCE_DEFINITION}}</p>
+
+<div class="card">
+<!-- TODO: 用 SVG 画出该概念的核心结构（如：组成、关系、流程）。
+     规范：viewBox 宽 640；中性色描边 + 圆角矩形；编号用实心圆点；
+     强调色只用于关键路径/关键词；图中文字每处不超过一行。 -->
+<svg viewBox="0 0 640 150" role="img" aria-label="{{CONCEPT_NAME}} 核心结构">
+  <!-- 在此绘制 -->
+</svg>
+</div>
+
+<!-- ============ 02 溯源：时间线，节点必须带原文链接 ============ -->
+<h2>02 · 它从哪来</h2>
+<div class="timeline">
+  <div class="t"><span class="date">{{YYYY-MM-DD}}</span><br>{{事件一句话}} —— <a href="{{SOURCE_URL_1}}" target="_blank">{{来源名}} ↗</a> · <a href="{{SOURCE_URL_2}}" target="_blank">{{来源名}} ↗</a></div>
+  <div class="t"><span class="date">{{YYYY-MM-DD}}</span><br>{{事件一句话}} —— <a href="{{SOURCE_URL_3}}" target="_blank">{{来源名}} ↗</a></div>
+</div>
+
+<!-- ============ 03 核心机制：一张图讲透最关键的一个原理 ============ -->
+<h2>03 · 核心机制：{{MECHANISM_NAME}}</h2>
+<p class="muted">{{ONE_LINE_PRINCIPLE}}</p>
+
+<div class="card">
+<!-- TODO: 用分层的 SVG 或列表讲核心机制，层次不超过 3 层，每层一行说明 -->
+</div>
+
+<!-- ============ 04 最小示例：可直接抄的代码/格式 ============ -->
+<h2>04 · 最小示例</h2>
+<pre>{{MINIMAL_EXAMPLE_CODE}}</pre>
+<p class="muted" style="margin-top:10px">完整规范见 <a href="{{SPEC_URL}}" target="_blank">规范原文 ↗</a> · 官方示例见 <a href="{{OFFICIAL_EXAMPLES_URL}}" target="_blank">示例库 ↗</a></p>
+
+<!-- ============ 05 可选：与相邻概念的对比（不超过 3 行） ============ -->
+<h2>05 · {{COMPARISON_TITLE}}</h2>
+<div class="card">
+  <ul>
+    <li><b>{{CONCEPT_A}}</b>：{{一句话}}</li>
+    <li><b>{{CONCEPT_B}}</b>：{{一句话}}</li>
+  </ul>
+  <p class="muted" style="margin-top:8px">{{官方定位一句话}}</p>
+</div>
+
+<!-- ============ 06 测试：难度递增，每题附出处验证链接 ============ -->
+<h2>06 · 测试（难度递增）</h2>
+<!-- 规则：5 题；★ 数递增；选项 3-4 个；干扰项要有迷惑性；
+     解析一句话 + 原文链接；data-answer 为正确选项的序号（从 0 开始） -->
+
+<div class="quiz" data-answer="{{N}}">
+  <span class="stars">★☆☆☆☆</span>
+  <div class="q">1. {{最基础的识别题}}</div>
+  <button class="opt">{{干扰项A}}</button>
+  <button class="opt">{{正确项}}</button>
+  <button class="opt">{{干扰项B}}</button>
+  <div class="explain">{{一句话解析}}<a href="{{SOURCE_URL}}" target="_blank">验证 ↗</a></div>
+</div>
+
+<div class="quiz" data-answer="{{N}}">
+  <span class="stars">★★☆☆☆</span>
+  <div class="q">2. {{字段/组成细节题}}</div>
+  <!-- 选项同上 -->
+</div>
+
+<div class="quiz" data-answer="{{N}}">
+  <span class="stars">★★★☆☆</span>
+  <div class="q">3. {{机制/时机理解题}}</div>
+</div>
+
+<div class="quiz" data-answer="{{N}}">
+  <span class="stars">★★★★☆</span>
+  <div class="q">4. {{设计理由/因果题}}</div>
+</div>
+
+<div class="quiz" data-answer="{{N}}">
+  <span class="stars">★★★★★</span>
+  <div class="q">5. {{权衡/对比/反直觉题}}</div>
+</div>
+
+<div class="score" id="score">答完后显示得分</div>
+
+<footer>
+  <p class="muted">出处速查：
+    <a href="{{SOURCE_URL_1}}" target="_blank">{{来源1}}</a> ·
+    <a href="{{SOURCE_URL_2}}" target="_blank">{{来源2}}</a> ·
+    <a href="{{SOURCE_URL_3}}" target="_blank">{{来源3}}</a>
+  </p>
+</footer>
+
+</main>
+
+<script>
+/* 判分逻辑：直接复用，无需修改 */
+let answered = 0, correct = 0;
+document.querySelectorAll('.quiz').forEach(q => {
+  const ans = +q.dataset.answer;
+  const opts = q.querySelectorAll('.opt');
+  opts.forEach((btn, i) => btn.addEventListener('click', () => {
+    if (q.dataset.done) return;
+    q.dataset.done = "1";
+    answered++;
+    opts.forEach((b, j) => {
+      b.disabled = true;
+      if (j === ans) b.classList.add('correct');
+    });
+    if (i === ans) correct++;
+    else btn.classList.add('wrong');
+    q.querySelector('.explain').classList.add('show');
+    if (answered === document.querySelectorAll('.quiz').length) {
+      const total = document.querySelectorAll('.quiz').length;
+      const s = document.getElementById('score');
+      s.textContent = `得分：${correct} / ${total}` +
+        (correct === total ? ' · 满分！概念已吃透' :
+         correct >= total * 0.6 ? ' · 不错，错题点回出处验证一下' :
+         ' · 建议重读第 01、03 节');
+    }
+  }));
+});
+</script>
+</body>
+</html>
